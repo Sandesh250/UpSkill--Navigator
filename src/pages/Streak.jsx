@@ -97,34 +97,67 @@ export default function Streak() {
     }
   }
 
+  // Extended grid for full year (52 weeks)
+  const yearGridDays = daysBack(new Date(), 52 * 7)
+  const stats = {
+    totalScreenTime: 8.2, // hours
+    dailyGoal: 60, // minutes
+    minutesToday: 0,
+  }
+
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <div className="card">
-        <div className="text-sm text-white/60">Active days</div>
-        <div className="mt-2 text-4xl font-bold">{streak}</div>
-        <div className="flex gap-2 mt-4">
-          <button onClick={markActiveToday} className="btn-primary">Mark Today</button>
-          <button onClick={connectCalendar} className="btn-primary bg-white/10 hover:bg-white/20">
-            {loadingCal ? 'Connecting…' : 'Connect Google Calendar'}
-          </button>
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="card">
+          <div className="text-sm text-white/60">Active days</div>
+          <div className="mt-2 text-4xl font-bold">{streak}</div>
+          <div className="flex gap-2 mt-4">
+            <button onClick={markActiveToday} className="btn-primary">Mark Today</button>
+            <button onClick={connectCalendar} className="btn-primary bg-white/10 hover:bg-white/20">
+              {loadingCal ? 'Connecting…' : 'Connect Google Calendar'}
+            </button>
+          </div>
+        </div>
+        <div className="card flex items-center justify-center">
+          <div className="w-40">
+            <CircularProgressbar
+              value={percentage}
+              text={`${streak}d`}
+              styles={buildStyles({
+                textColor: '#fff',
+                pathColor: '#6d28d9',
+                trailColor: 'rgba(255,255,255,0.1)'
+              })}
+            />
+          </div>
         </div>
       </div>
-      <div className="card flex items-center justify-center">
-        <div className="w-40">
-          <CircularProgressbar
-            value={percentage}
-            text={`${streak}d`}
-            styles={buildStyles({
-              textColor: '#fff',
-              pathColor: '#6d28d9',
-              trailColor: 'rgba(255,255,255,0.1)'
-            })}
-          />
+
+      {/* Full year contribution graph */}
+      <div className="card overflow-x-auto p-5">
+        <div className="mb-4 text-lg font-semibold">Daily Streak Activity</div>
+        <ContributionGrid days={yearGridDays} activeSet={activeDays} />
+        <div className="flex items-center gap-4 mt-4 text-xs text-white/60">
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/10"></div> Less</div>
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-emerald-400"></div> More</div>
         </div>
       </div>
-      <div className="md:col-span-2 card overflow-x-auto">
-        <div className="mb-2 text-sm text-white/60">Last 28 weeks</div>
-        <ContributionGrid days={gridDays} activeSet={activeDays} />
+
+      {/* Screen Time Summary */}
+      <div className="card p-5">
+        <div className="text-lg font-semibold mb-4">Screen Time</div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+            <div className="text-sm text-white/60">Total Screen Time</div>
+            <div className="mt-2 text-3xl font-bold">{stats.totalScreenTime}h</div>
+            <div className="text-xs text-white/50 mt-1">This month</div>
+          </div>
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+            <div className="text-sm text-white/60">Today's Goal</div>
+            <div className="mt-2 text-3xl font-bold">{stats.dailyGoal} min</div>
+            <div className="text-xs text-white/50 mt-1">Completed: {stats.minutesToday} min</div>
+          </div>
+        </div>
       </div>
     </div>
   )

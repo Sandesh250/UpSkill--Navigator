@@ -1,0 +1,22 @@
+[
+  {
+    "id": 101,
+    "question": "Which hook is used to manage state in React?",
+    "options": ["useEffect", "useMemo", "useState", "useRef"],
+    "answer": 2
+  },
+  {
+    "id": 102,
+    "question": "In CSS, which unit is relative to the root font-size?",
+    "options": ["em", "rem", "vh", "px"],
+    "answer": 1
+  },
+  {
+    "id": 103,
+    "question": "Which HTTP status code means 'Created'?",
+    "options": ["200", "201", "204", "400"],
+    "answer": 1
+  }
+]
+
+

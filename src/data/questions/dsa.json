@@ -1,0 +1,22 @@
+[
+  {
+    "id": 201,
+    "question": "What is the time complexity of binary search?",
+    "options": ["O(n)", "O(log n)", "O(n log n)", "O(1)"],
+    "answer": 1
+  },
+  {
+    "id": 202,
+    "question": "Which data structure uses FIFO order?",
+    "options": ["Stack", "Queue", "Tree", "Graph"],
+    "answer": 1
+  },
+  {
+    "id": 203,
+    "question": "What is the worst-case time complexity of quicksort?",
+    "options": ["O(n)", "O(n log n)", "O(n^2)", "O(log n)"],
+    "answer": 2
+  }
+]
+
+

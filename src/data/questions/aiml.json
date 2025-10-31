@@ -1,0 +1,22 @@
+[
+  {
+    "id": 301,
+    "question": "Which metric is commonly used for classification performance?",
+    "options": ["MSE", "Accuracy", "MAE", "RMSE"],
+    "answer": 1
+  },
+  {
+    "id": 302,
+    "question": "Which algorithm is supervised?",
+    "options": ["K-Means", "Linear Regression", "PCA", "t-SNE"],
+    "answer": 1
+  },
+  {
+    "id": 303,
+    "question": "What does 'overfitting' mean?",
+    "options": ["Model performs well on new data", "Model fits noise in training data", "Model is too simple", "Model is unbiased"],
+    "answer": 1
+  }
+]
+
+
