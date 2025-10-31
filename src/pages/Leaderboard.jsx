@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { Trophy } from 'lucide-react'
 import { db } from '../lib/firebase'
 import useAuth from '../hooks/useAuth'
 import ContributionGrid from '../components/ContributionGrid'
+import { fetchLeaderboardData } from '../utils/leaderboard'
 
 function RatingTrend({ data }) {
   if (!data || data.length === 0) return <div className="h-32 flex items-center justify-center text-white/40">No data yet</div>
@@ -74,55 +75,36 @@ export default function Leaderboard() {
   const [userStats, setUserStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeDays, setActiveDays] = useState(new Set())
+  const [topEntries, setTopEntries] = useState([])
 
   useEffect(() => {
     ;(async () => {
       if (!user) return
       setLoading(true)
       try {
-        // Fetch active days
+        // Active days for contribution grid
         const loginSnap = await getDocs(collection(db, 'logins', user.uid, 'days'))
         const activeSet = new Set(loginSnap.docs.map((d) => d.id))
         setActiveDays(activeSet)
 
-        // Fetch scores
-        const scoresSnap = await getDocs(collection(db, 'scores'))
-        const byUser = new Map()
-        const userHistory = new Map()
+        // Unified leaderboard among participants
+        const lb = await fetchLeaderboardData(user.uid)
+        setTopEntries(lb.top || [])
 
-        scoresSnap.forEach((doc) => {
-          const data = doc.data()
-          const uid = data.uid
-          const score = data.score || 0
-          byUser.set(uid, (byUser.get(uid) || 0) + score * 10)
-          if (!userHistory.has(uid)) userHistory.set(uid, [])
-          userHistory.get(uid).push({
-            rating: (byUser.get(uid) || 0) + score * 10,
-            date: data.createdAt?.toDate?.() || new Date(),
-          })
+        // User's contest count
+        const myScoresSnap = await getDocs(query(collection(db, 'scores'), where('uid', '==', user.uid)))
+        const attended = myScoresSnap.size
+
+        const percentile = lb.total > 0 ? (((lb.total - lb.rank) / lb.total) * 100) : 0
+
+        setUserStats({
+          rating: lb.points || 0,
+          rank: lb.rank,
+          total: lb.total,
+          attended,
+          percentile: percentile.toFixed(1),
+          history: [],
         })
-
-        const entries = Array.from(byUser.entries()).map(([uid, points]) => ({
-          uid,
-          points,
-          history: userHistory.get(uid) || [],
-        }))
-        entries.sort((a, b) => b.points - a.points)
-
-        if (user) {
-          const userEntry = entries.find((e) => e.uid === user.uid) || { points: 0, history: [], uid: user.uid }
-          const rank = entries.findIndex((e) => e.uid === user.uid) + 1 || entries.length + 1
-          const percentile = entries.length > 0 ? ((entries.length - rank) / entries.length) * 100 : 0
-
-          setUserStats({
-            rating: userEntry.points,
-            rank: rank || entries.length + 1,
-            total: entries.length,
-            attended: userEntry.history.length,
-            percentile: percentile.toFixed(1),
-            history: userEntry.history,
-          })
-        }
       } catch (e) {
         console.error(e)
       } finally {
@@ -241,9 +223,23 @@ export default function Leaderboard() {
               <div className="text-lg font-semibold mt-1">{userStats.attended} contests</div>
             </div>
           </div>
+          {/* Top Participants */}
           <div>
-            <div className="text-sm text-white/60 mb-2">Rating Trend</div>
-            <RatingTrend data={userStats.history} />
+            <div className="text-sm text-white/60 mb-2">Top Participants</div>
+            <div className="divide-y divide-white/10 border border-white/10 rounded-lg overflow-hidden">
+              {topEntries.slice(0, 10).map((e, idx) => (
+                <div key={e.uid} className="flex items-center justify-between px-3 py-2 bg-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 text-white/70">#{idx + 1}</div>
+                    <div className="text-white/90">{e.displayName || e.uid.slice(0,8)}</div>
+                  </div>
+                  <div className="text-white/80 font-semibold">{e.points.toLocaleString()} pts</div>
+                </div>
+              ))}
+              {topEntries.length === 0 && (
+                <div className="px-3 py-6 text-center text-white/50">No participants yet</div>
+              )}
+            </div>
           </div>
         </div>
       </div>

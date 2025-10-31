@@ -1,4 +1,6 @@
 import useAuth from '../hooks/useAuth'
+import { useEffect, useState } from 'react'
+import { fetchLeaderboardData } from '../utils/leaderboard'
 import { Flame, Trophy } from 'lucide-react'
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
 import 'react-circular-progressbar/dist/styles.css'
@@ -12,6 +14,7 @@ const quotes = [
 
 export default function Home() {
   const { user } = useAuth()
+  const [lb, setLb] = useState({ rank: 0, total: 0, weeklyPoints: 0 })
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Learner'
   const quote = quotes[Math.floor(Math.random() * quotes.length)]
 
@@ -40,7 +43,15 @@ export default function Home() {
     }
   }
 
-  const leaderboard = { rank: 12, total: 100, weeklyPoints: 120 }
+  useEffect(() => {
+    ;(async () => {
+      if (!user) return
+      const data = await fetchLeaderboardData(user.uid)
+      setLb({ rank: data.rank, total: data.total, weeklyPoints: data.weeklyPoints })
+    })()
+  }, [user])
+
+  const leaderboard = { rank: lb.rank || 0, total: lb.total || 0, weeklyPoints: lb.weeklyPoints || 0 }
   const subjects = [
     { name: 'Frontend', value: 65, color: '#6d28d9' },
     { name: 'DSA', value: 40, color: '#22c55e' },
