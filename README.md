@@ -22,7 +22,7 @@ Screen Time Tracker — Timer for focused study sessions.
 
 ⚙️ Tech Stack
 
-Frontend: React + Tailwind CSS
+Frontend: React + Tailwind CS
 Backend: Firebase (Auth + Firestore + Storage)
 AI Tools: OpenAI API / Gemini / Whisper for transcription
 Hosting: Vercel or Firebase Hosting
