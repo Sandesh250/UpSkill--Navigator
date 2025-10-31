@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
+import { Trophy } from 'lucide-react'
 import { db } from '../lib/firebase'
 import useAuth from '../hooks/useAuth'
+import ContributionGrid from '../components/ContributionGrid'
 
 function RatingTrend({ data }) {
   if (!data || data.length === 0) return <div className="h-32 flex items-center justify-center text-white/40">No data yet</div>
@@ -71,11 +73,19 @@ export default function Leaderboard() {
   const { user } = useAuth()
   const [userStats, setUserStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [activeDays, setActiveDays] = useState(new Set())
 
   useEffect(() => {
     ;(async () => {
+      if (!user) return
       setLoading(true)
       try {
+        // Fetch active days
+        const loginSnap = await getDocs(collection(db, 'logins', user.uid, 'days'))
+        const activeSet = new Set(loginSnap.docs.map((d) => d.id))
+        setActiveDays(activeSet)
+
+        // Fetch scores
         const scoresSnap = await getDocs(collection(db, 'scores'))
         const byUser = new Map()
         const userHistory = new Map()
@@ -123,6 +133,17 @@ export default function Leaderboard() {
 
   if (loading) return <div className="flex items-center justify-center min-h-[400px]">Loading...</div>
   if (!userStats) {
+    // Create mock active days for demonstration
+    const mockActiveDays = new Set()
+    const today = new Date()
+    for (let i = 0; i < 365; i++) {
+      if (i % 3 === 0) { // More consistent pattern - every third day
+        const date = new Date(today)
+        date.setDate(today.getDate() - i)
+        mockActiveDays.add(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`)
+      }
+    }
+
     const mockStats = {
       rating: 1626,
       rank: 151888,
@@ -171,6 +192,21 @@ export default function Leaderboard() {
               <div className="text-sm text-white/60 mb-2">Ranking Distribution</div>
               <DistributionChart userRating={mockStats.rating} />
             </div>
+            <div>
+              <div className="text-sm text-white/60 mb-2">Activity Overview</div>
+              <div className="overflow-x-auto">
+                <ContributionGrid weeks={52} activeSet={mockActiveDays} />
+              </div>
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center gap-4 text-xs text-white/60">
+                  <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/10"></div> Less</div>
+                  <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-emerald-400"></div> More</div>
+                </div>
+                <div className="text-sm text-white/60">
+                  Total Active Days: <span className="text-white font-semibold">{mockActiveDays.size}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -182,8 +218,13 @@ export default function Leaderboard() {
       <div className="card p-6">
         <div className="space-y-6">
           <div>
-            <div className="text-sm text-white/60">Rating</div>
-            <div className="text-4xl font-bold mt-1">{userStats.rating.toLocaleString()}</div>
+            <div className="flex items-center gap-2 text-yellow-300">
+              <Trophy size={18}/> <div className="text-lg font-semibold">Competitive Rating</div>
+            </div>
+            <div className="mt-4">
+              <div className="text-sm text-white/60">Rating</div>
+              <div className="text-4xl font-bold mt-1">{userStats.rating.toLocaleString()}</div>
+            </div>
           </div>
           <div className="mt-4 bg-white/5 rounded-lg p-4 border border-white/10">
             <div className="text-sm text-white/60">Ranking</div>
@@ -215,6 +256,19 @@ export default function Leaderboard() {
           <div>
             <div className="text-sm text-white/60 mb-2">Ranking Distribution</div>
             <DistributionChart userRating={userStats.rating} />
+          </div>
+          <div>
+            <div className="text-sm text-white/60 mb-2">Activity Overview</div>
+            <ContributionGrid weeks={26} activeSet={activeDays} />
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-4 text-xs text-white/60">
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/10"></div> Less</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-emerald-400"></div> More</div>
+              </div>
+              <div className="text-sm text-white/60">
+                Total Active Days: <span className="text-white font-semibold">{activeDays.size}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

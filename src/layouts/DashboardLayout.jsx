@@ -7,7 +7,7 @@ import { auth } from '../lib/firebase'
 const nav = [
   { to: '/app', label: 'Home', icon: Home, end: true },
   { to: '/app/streak', label: 'Daily Streak', icon: Flame },
-  { to: '/app/chatbot', label: 'AI Chatbot', icon: Bot },
+  { to: '/app/chatbot', label: 'Chatbot', icon: Bot },
   { to: '/app/doubts', label: 'Doubt Solver', icon: HelpCircle },
   { to: '/app/quiz', label: 'Quiz', icon: ListChecks },
   { to: '/app/leaderboard', label: 'Leaderboard', icon: Trophy },

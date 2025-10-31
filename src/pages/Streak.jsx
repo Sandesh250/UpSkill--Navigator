@@ -134,21 +134,7 @@ export default function Streak() {
       </div>
 
       {/* Full year contribution graph */}
-      <div className="card overflow-x-auto p-5">
-        <div className="mb-4 text-lg font-semibold">Daily Streak Activity</div>
-        <div className="overflow-x-auto">
-          <ContributionGrid weeks={52} activeSet={activeDays} />
-        </div>
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-4 text-xs text-white/60">
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/10"></div> Less</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-emerald-400"></div> More</div>
-          </div>
-          <div className="text-sm text-white/60">
-            Total Active Days: <span className="text-white font-semibold">{activeDays.size}</span>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Screen Time Summary */}
       <div className="card p-5">

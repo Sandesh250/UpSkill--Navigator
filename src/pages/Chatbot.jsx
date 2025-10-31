@@ -9,6 +9,7 @@ export default function Chatbot() {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])
   const messagesEndRef = useRef(null)
+  const [isSending, setIsSending] = useState(false)
 
   function getSimulatedReply(userText, lastAssistant) {
     const keywords = (userText.match(/\b[a-zA-Z]{4,}\b/g) || []).slice(0, 3)
@@ -47,23 +48,41 @@ export default function Chatbot() {
 
   const sendMessage = async () => {
     const content = input.trim()
-    if (!content || !user) return
+    if (!content || !user || isSending) return
     setInput('')
     await addDoc(collection(db, 'chats', user.uid, 'messages'), {
       role: 'user',
       content,
       createdAt: new Date(),
     })
-    const lastAssistant = messages.filter((m) => m.role === 'assistant').slice(-1)[0]?.content || ''
-    const reply = getSimulatedReply(content, lastAssistant)
-    await addDoc(collection(db, 'chats', user.uid, 'messages'), {
-      role: 'assistant',
-      content: reply,
-      createdAt: new Date(),
-    })
+    setIsSending(true)
+    try {
+      const resp = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: content, model: 'gemini-2.5-flash' }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data?.error || 'Request failed')
+      const reply = data?.text || ''
+      await addDoc(collection(db, 'chats', user.uid, 'messages'), {
+        role: 'assistant',
+        content: reply,
+        createdAt: new Date(),
+      })
+    } catch (e) {
+      const lastAssistant = messages.filter((m) => m.role === 'assistant').slice(-1)[0]?.content || ''
+      const fallback = getSimulatedReply(content, lastAssistant)
+      await addDoc(collection(db, 'chats', user.uid, 'messages'), {
+        role: 'assistant',
+        content: `Error contacting AI: ${e?.message || 'Unknown error'}. Here's a quick tip instead:\n\n${fallback}`,
+        isError: true,
+        createdAt: new Date(),
+      })
+    } finally {
+      setIsSending(false)
+    }
   }
-
-  // Removed roadmap rendering since backend integration is disabled
 
   return (
     <div className="h-[calc(100vh-4rem)] grid grid-rows-[1fr_auto] gap-4">
@@ -88,6 +107,14 @@ export default function Chatbot() {
             </div>
           </div>
         ))}
+        {isSending && (
+          <div className="max-w-full">
+            <div className="p-3 rounded-lg bg-white/5">
+              <div className="text-xs text-white/60 mb-1">assistant</div>
+              <div className="text-white/90 animate-pulse">Typing…</div>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
       <div className="flex gap-2">
@@ -97,11 +124,10 @@ export default function Chatbot() {
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           placeholder="Ask anything about coding, DSA, or careers"
           className="flex-1 px-3 py-2 bg-white/5 rounded-lg outline-none border border-white/10 focus:border-brand-600 text-white placeholder:text-white/50"
-          
+          disabled={isSending}
         />
-        <button onClick={sendMessage} className="btn-primary" disabled={!input.trim()}>Send</button>
+        <button onClick={sendMessage} className="btn-primary" disabled={!input.trim() || isSending}>{isSending ? 'Sending…' : 'Send'}</button>
       </div>
     </div>
   )
 }
-
