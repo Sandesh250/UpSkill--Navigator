@@ -5,6 +5,10 @@ import { Flame, Trophy } from 'lucide-react'
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
 import 'react-circular-progressbar/dist/styles.css'
 import ContributionGrid from '../components/ContributionGrid'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '../lib/firebase'
+import { calcStreak, calcBestStreak } from '../utils/dateUtils'
+import useScreenTimer from '../hooks/useScreenTimer'
 
 const quotes = [
   'Learning never exhausts the mind. — Leonardo da Vinci',
@@ -15,39 +19,40 @@ const quotes = [
 export default function Home() {
   const { user } = useAuth()
   const [lb, setLb] = useState({ rank: 0, total: 0, weeklyPoints: 0 })
+  const [dayStreak, setDayStreak] = useState(0)
+  const [bestStreak, setBestStreak] = useState(0)
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Learner'
   const quote = quotes[Math.floor(Math.random() * quotes.length)]
+  const timer = useScreenTimer(user?.uid)
 
   const stats = {
     points: 0,
-    dayStreak: 0,
-    best: 0,
+    dayStreak: dayStreak,
+    best: bestStreak,
     conceptsCompleted: 0,
     conceptsTotal: 45,
     dailyGoal: 60,
-    minutesToday: 0,
-    totalScreenTime: 8.2, // hours
+    minutesToday: timer.minutes || 0,
   }
 
-  // Mock active days for contribution graph (last ~52 weeks = 1 year)
-  const activeDays = new Set()
-  const today = new Date()
-  for (let i = 0; i < 52 * 7; i++) {
-    const date = new Date(today)
-    date.setDate(today.getDate() - i)
-    // Simulate activity: sparse in first 4 months, dense in last 8 months
-    const monthsAgo = i / 30
-    const probability = monthsAgo > 4 ? 0.8 : monthsAgo > 3 ? 0.6 : 0.1
-    if (Math.random() < probability) {
-      activeDays.add(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`)
-    }
-  }
+  const [activeDays, setActiveDays] = useState(new Set())
 
   useEffect(() => {
     ;(async () => {
       if (!user) return
       const data = await fetchLeaderboardData(user.uid)
       setLb({ rank: data.rank, total: data.total, weeklyPoints: data.weeklyPoints })
+    })()
+  }, [user])
+
+  useEffect(() => {
+    ;(async () => {
+      if (!user) return
+      const loginSnap = await getDocs(collection(db, 'logins', user.uid, 'days'))
+      const set = new Set(loginSnap.docs.map((d) => d.id))
+      setActiveDays(set)
+      setDayStreak(calcStreak(set))
+      setBestStreak(calcBestStreak(set))
     })()
   }, [user])
 
@@ -77,7 +82,7 @@ export default function Home() {
 
       {/* Badges row (replaces Today's Challenge) */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {[{label:'Minutes Today', value: `${stats.minutesToday}/${stats.dailyGoal}`, color:'bg-blue-500/15 text-blue-300 border-blue-500/30'},
+        {[{label:'Minutes Today', value: `${stats.minutesToday} min`, color:'bg-blue-500/15 text-blue-300 border-blue-500/30'},
           {label:'Points', value: stats.points, color:'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'},
           {label:'Best Streak', value: stats.best + ' days', color:'bg-amber-500/15 text-amber-300 border-amber-500/30'},
           {label:'Level', value: '1', color:'bg-purple-500/15 text-purple-300 border-purple-500/30'}].map((b) => (
@@ -114,7 +119,7 @@ export default function Home() {
               <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                 <div className="text-sm text-white/60">Current Streak</div>
                 <div className="mt-1 flex items-center gap-2 text-orange-300"><Flame size={18}/> <div className="text-2xl font-bold">{stats.dayStreak} Days</div></div>
-                <div className="text-xs text-white/50 mt-1">36 days</div>
+                <div className="text-xs text-white/50 mt-1">Best: {stats.best} days</div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {[5,10,15,30].map((d) => (
@@ -135,6 +140,19 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Timer Controls */}
+      <div className="card p-5">
+        <div className="text-lg font-semibold mb-4">Screen Time Today</div>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-3xl font-bold">{stats.minutesToday} min</div>
+          <div className="flex gap-2">
+            <button onClick={timer.start} className="btn-primary" disabled={!user || timer.running}>Start</button>
+            <button onClick={timer.stop} className="btn-primary bg-white/10 hover:bg-white/20" disabled={!user || !timer.running}>Stop</button>
+            <button onClick={timer.resetToday} className="btn-primary bg-white/5 hover:bg-white/15" disabled={!user}>Reset</button>
+          </div>
+        </div>
+      </div>
+
       {/* Subjects progress */}
       <div className="card p-5">
         <div className="text-lg font-semibold mb-4">Subjects</div>
@@ -150,22 +168,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Screen Time Summary */}
-      <div className="card p-5">
-        <div className="text-lg font-semibold mb-4">Screen Time</div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-            <div className="text-sm text-white/60">Total Screen Time</div>
-            <div className="mt-2 text-3xl font-bold">{stats.totalScreenTime}h</div>
-            <div className="text-xs text-white/50 mt-1">This month</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-            <div className="text-sm text-white/60">Today's Goal</div>
-            <div className="mt-2 text-3xl font-bold">{stats.dailyGoal} min</div>
-            <div className="text-xs text-white/50 mt-1">Completed: {stats.minutesToday} min</div>
-          </div>
-        </div>
-      </div>
+      {/* Removed monthly mock and replaced with live timer above */}
 
       {/* Footer quote */}
       <div className="text-sm text-white/60">{quote}</div>

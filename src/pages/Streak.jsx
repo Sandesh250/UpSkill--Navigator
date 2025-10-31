@@ -4,9 +4,10 @@ import 'react-circular-progressbar/dist/styles.css'
 import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import useAuth from '../hooks/useAuth'
-import { daysBack, toYmd, calcStreak } from '../utils/dateUtils'
+import { daysBack, toYmd, calcStreak, calcBestStreak } from '../utils/dateUtils'
 import ContributionGrid from '../components/ContributionGrid'
 import { getCalendarAccessToken, fetchCalendarActiveDays } from '../lib/google'
+import useScreenTimer from '../hooks/useScreenTimer'
 
 function getDaysBetween(a, b) {
   const ms = 24 * 60 * 60 * 1000
@@ -19,6 +20,8 @@ export default function Streak() {
   const [lastActive, setLastActive] = useState(null)
   const [activeDays, setActiveDays] = useState(new Set())
   const [loadingCal, setLoadingCal] = useState(false)
+  const [best, setBest] = useState(0)
+  const timer = useScreenTimer(user?.uid)
 
   useEffect(() => {
     if (!user) return
@@ -49,6 +52,11 @@ export default function Streak() {
     setStreak(nextStreak)
     setLastActive(today)
     await setDoc(doc(db, 'streaks', user.uid), { streak: nextStreak, lastActive: today, updatedAt: serverTimestamp() }, { merge: true })
+    await setDoc(doc(db, 'logins', user.uid, 'days', toYmd(today)), { active: true, at: serverTimestamp() }, { merge: true })
+    const merged = new Set(activeDays)
+    merged.add(toYmd(today))
+    setActiveDays(merged)
+    setBest(calcBestStreak(merged))
   }
 
   // Build 28 weeks grid (196 days)
@@ -58,18 +66,11 @@ export default function Streak() {
   useEffect(() => {
     if (!user) return
     ;(async () => {
-      // Load login days active set
       const loginSnap = await getDocs(collection(db, 'logins', user.uid, 'days'))
       const set = new Set(loginSnap.docs.map((d) => d.id))
-      // Merge with current lastActive/streak doc if present
-      const sref = doc(db, 'streaks', user.uid)
-      const snap = await getDoc(sref)
-      if (snap.exists()) {
-        const data = snap.data()
-        setStreak(data.streak || 0)
-        setLastActive(data.lastActive?.toDate?.() || null)
-      }
       setActiveDays(set)
+      setStreak(calcStreak(set))
+      setBest(calcBestStreak(set))
     })()
   }, [user])
 
@@ -141,14 +142,17 @@ export default function Streak() {
         <div className="text-lg font-semibold mb-4">Screen Time</div>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-            <div className="text-sm text-white/60">Total Screen Time</div>
-            <div className="mt-2 text-3xl font-bold">{stats.totalScreenTime}h</div>
-            <div className="text-xs text-white/50 mt-1">This month</div>
+            <div className="text-sm text-white/60">Today's Time</div>
+            <div className="mt-2 text-3xl font-bold">{timer.minutes} min</div>
+            <div className="text-xs text-white/50 mt-1">Live</div>
           </div>
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-            <div className="text-sm text-white/60">Today's Goal</div>
-            <div className="mt-2 text-3xl font-bold">{stats.dailyGoal} min</div>
-            <div className="text-xs text-white/50 mt-1">Completed: {stats.minutesToday} min</div>
+            <div className="text-sm text-white/60">Controls</div>
+            <div className="mt-2 flex gap-2">
+              <button onClick={timer.start} className="btn-primary" disabled={!user || timer.running}>Start</button>
+              <button onClick={timer.stop} className="btn-primary bg-white/10 hover:bg-white/20" disabled={!user || !timer.running}>Stop</button>
+              <button onClick={timer.resetToday} className="btn-primary bg-white/5 hover:bg-white/15" disabled={!user}>Reset</button>
+            </div>
           </div>
         </div>
       </div>
