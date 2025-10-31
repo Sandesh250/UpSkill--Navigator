@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+html, body, #root { height: 100%; }
+
+body {
+  @apply bg-black text-white antialiased;
+}
+
+.glass {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 transition-colors text-white;
+}
+
+.card {
+  @apply glass p-4;
+}
+
+
