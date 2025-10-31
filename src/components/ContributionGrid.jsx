@@ -3,6 +3,7 @@ export default function ContributionGrid({ days, activeSet, weeks }) {
   // 1) Pass explicit `days: Date[]` (chronological). We'll render by slicing into weeks.
   // 2) Omit `days`. We'll render last `weeks` (default 26) from today.
 
+  const activeDaysCount = activeSet ? activeSet.size : 0
   let columns = []
   if (Array.isArray(days) && days.length > 0) {
     const weekCount = Math.ceil(days.length / 7)

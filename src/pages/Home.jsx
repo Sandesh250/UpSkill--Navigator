@@ -103,7 +103,7 @@ export default function Home() {
               <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                 <div className="text-sm text-white/60">Current Streak</div>
                 <div className="mt-1 flex items-center gap-2 text-orange-300"><Flame size={18}/> <div className="text-2xl font-bold">{stats.dayStreak} Days</div></div>
-                <div className="text-xs text-white/50 mt-1">Best: {stats.best} days</div>
+                <div className="text-xs text-white/50 mt-1">36 days</div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {[5,10,15,30].map((d) => (
