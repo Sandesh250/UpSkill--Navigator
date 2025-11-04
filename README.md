@@ -1,5 +1,5 @@
-# Ctrl-Alt-Boo-
-🚀 Upskill Navigator
+# Upskill Navigator
+
 
 Your all-in-one personalized learning assistant — built to guide, motivate, and upskill users efficiently through smart AI tools and gamification.
 
