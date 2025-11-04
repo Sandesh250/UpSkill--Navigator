@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
               const raw = Buffer.concat(chunks).toString('utf8')
               const body = raw ? JSON.parse(raw) : {}
               const prompt = body?.prompt || ''
+              const generationConfig = body?.generationConfig
               const model = body?.model || 'gemini-2.5-flash'
               if (!prompt) {
                 res.statusCode = 400
@@ -52,6 +53,7 @@ export default defineConfig(({ mode }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                  ...(generationConfig ? { generationConfig } : {}),
                   contents: [
                     {
                       role: 'user',
