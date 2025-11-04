@@ -15,7 +15,26 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Missing GOOGLE_API_KEY in Vercel env' })
     }
 
-    const { prompt = '', generationConfig, model = 'gemini-2.5-flash' } = req.body || {}
+    // Read JSON body safely (Vercel Node serverless doesn't auto-parse)
+    let body = {}
+    try {
+      if (req.body && typeof req.body === 'object') {
+        body = req.body
+      } else {
+        const chunks = []
+        await new Promise((resolve, reject) => {
+          req.on('data', (c) => chunks.push(c))
+          req.on('end', resolve)
+          req.on('error', reject)
+        })
+        const raw = Buffer.concat(chunks).toString('utf8')
+        body = raw ? JSON.parse(raw) : {}
+      }
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON body' })
+    }
+
+    const { prompt = '', generationConfig, model = 'gemini-2.5-flash' } = body || {}
     if (!prompt) {
       return res.status(400).json({ error: 'Missing prompt' })
     }
